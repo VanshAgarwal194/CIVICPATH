@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CivicPath | Scheme Eligibility Checker</title>
+<meta name="description" content="Explore government welfare schemes that may fit your household and work profile.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f5f7f2;
+    --surface: #ffffff;
+    --surface-2: #f7f9f5;
+    --ink: #152c27;
+    --muted: #687a73;
+    --line: #e2e9e2;
+    --green: #176b52;
+    --green-dark: #104d3d;
+    --green-soft: #e8f3ed;
+    --gold: #f2b544;
+    --coral: #f08262;
+    --shadow: 0 22px 65px rgba(24, 55, 44, .09);
+    --radius: 22px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #101b18; --surface: #182621; --surface-2: #202f29; --ink: #f3f6ef;
+    --muted: #a8b7ad; --line: #314239; --green: #7ed0a8; --green-dark: #123e30;
+    --green-soft: #203c30; --gold: #f2bd5c; --coral: #ff9677; --shadow: 0 22px 65px rgba(0,0,0,.2);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; }
+  .wrap { width: min(1160px, calc(100% - 48px)); margin: 0 auto; padding: 28px 0 56px; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:34px; }
+  .brand { display:flex; align-items:center; gap:11px; color:var(--ink); font-weight:600; letter-spacing:-.02em; }
+  .brand-mark { display:grid; place-items:center; width:40px; height:40px; border-radius:14px; color:#fff; background:var(--green); box-shadow:0 8px 20px rgba(23,107,82,.2); }
+  .brand-mark svg { width:22px; height:22px; }
+  .brand small { display:block; color:var(--muted); font-size:11px; font-weight:500; letter-spacing:.09em; text-transform:uppercase; }
+  .theme-button { display:flex; align-items:center; gap:8px; padding:9px 13px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink); cursor:pointer; font-size:13px; font-weight:500; transition:transform .2s, border-color .2s; }
+  .theme-button:hover { transform:translateY(-1px); border-color:var(--green); }
+  .theme-button:focus-visible, button:focus-visible { outline:3px solid color-mix(in srgb, var(--gold) 75%, transparent); outline-offset:3px; }
+  .hero { position:relative; overflow:hidden; display:grid; grid-template-columns:minmax(0, 1.18fr) minmax(300px, .82fr); align-items:center; gap:32px; min-height:350px; padding:48px 56px; margin-bottom:26px; border-radius:30px; color:#fff; background:radial-gradient(circle at 84% 18%, rgba(242,181,68,.23), transparent 24%), linear-gradient(120deg,#124f3d 0%,#176b52 56%,#268264 100%); box-shadow:var(--shadow); }
+  .hero::before { content:""; position:absolute; width:340px; height:340px; border:1px solid rgba(255,255,255,.12); border-radius:50%; right:4%; top:-210px; box-shadow:0 0 0 35px rgba(255,255,255,.035),0 0 0 70px rgba(255,255,255,.025); }
+  .hero-copy,.hero-art { position:relative; z-index:1; }
+  .eyebrow { display:inline-flex; align-items:center; gap:8px; margin:0 0 18px; color:#c6e3d4; font-size:12px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; }
+  .eyebrow-dot { width:7px; height:7px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 5px rgba(242,181,68,.16); }
+  h1,h2,h3,p { margin-top:0; }
+  h1 { max-width:650px; margin-bottom:16px; font-family:'Lora', Georgia, serif; font-size:clamp(38px,5vw,58px); font-weight:500; line-height:1.08; letter-spacing:-.04em; }
+  .hero .lede { max-width:590px; margin:0; color:#d6e8df; font-size:16px; }
+  .hero-art { min-height:220px; display:grid; place-items:center; }
+  .orbit { position:absolute; width:228px; height:228px; border:1px solid rgba(255,255,255,.23); border-radius:50%; }
+  .orbit::before,.orbit::after { content:""; position:absolute; border:1px solid rgba(255,255,255,.15); border-radius:50%; inset:20px; }
+  .orbit::after { inset:43px; }
+  .hero-card { width:min(100%,310px); padding:23px; border:1px solid rgba(255,255,255,.32); border-radius:20px; background:rgba(255,255,255,.13); backdrop-filter:blur(12px); box-shadow:0 20px 45px rgba(6,34,25,.2); transform:rotate(2deg); }
+  .hero-card-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; color:#e4f1eb; font-size:12px; }
+  .hero-card-icon { display:grid; place-items:center; width:36px;height:36px;border-radius:12px;background:var(--gold);color:#294334; }
+  .hero-card-icon svg { width:20px;height:20px; }
+  .hero-card strong { display:block; margin-bottom:5px; font-family:'Lora',Georgia,serif; font-size:23px; font-weight:500; }
+  .hero-card p { margin:0;color:#d6e8df;font-size:13px; }
+  .hero-progress { display:flex; gap:6px; margin-top:20px; }
+  .hero-progress i { display:block; height:5px; flex:1; border-radius:99px; background:rgba(255,255,255,.25); }
+  .hero-progress i:first-child,.hero-progress i:nth-child(2) { background:var(--gold); }
+  .trust-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px 22px; padding:0 4px 27px; color:var(--muted); font-size:12.5px; }
+  .trust-item { display:flex; align-items:center; gap:7px; }
+  .trust-item svg { width:16px; height:16px; color:var(--green); }
+  .content-grid { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(300px,.75fr); gap:24px; align-items:start; }
+  section.card { padding:30px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
+  .section-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:26px; }
+  .section-kicker { display:block; margin-bottom:7px; color:var(--green); font-size:11px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; }
+  h2 { margin:0; font-family:'Lora',Georgia,serif; font-size:25px; font-weight:600; letter-spacing:-.025em; line-height:1.2; }
+  .step-count { flex:0 0 auto; padding:7px 11px; border-radius:999px; background:var(--green-soft); color:var(--green); font-size:11px; font-weight:600; }
+  .field { margin-bottom:19px; }
+  .field:last-child { margin-bottom:0; }
+  label { display:block; margin-bottom:7px; color:var(--ink); font-size:13px; font-weight:600; }
+  .hint { display:block; margin-top:4px; color:var(--muted); font-size:11.5px; font-weight:400; }
+  select,input[type="number"] { width:100%; min-height:48px; padding:11px 14px; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:12px; font-size:14px; transition:border-color .18s, box-shadow .18s, background .18s; }
+  select { appearance:none; padding-right:40px; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23687a73' stroke-width='2'><path d='m6 9 6 6 6-6'/></svg>"); background-repeat:no-repeat; background-position:right 14px center; }
+  select:focus,input:focus { outline:none; border-color:var(--green); box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 13%,transparent); background:var(--surface); }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  fieldset { display:grid; grid-template-columns:1fr 1fr; gap:10px; border:0; padding:0; margin:4px 0 0; }
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:58px; padding:10px 12px; border:1px solid var(--line); border-radius:13px; background:var(--surface-2); }
+  .toggle-row span { color:var(--ink); font-size:12px; line-height:1.35; }
+  .switch { position:relative; flex:0 0 40px; width:40px; height:23px; margin:0; }
+  .switch input { position:absolute; opacity:0; width:1px;height:1px; }
+  .switch .track { position:absolute; inset:0; border-radius:99px; background:#c7d1ca; cursor:pointer; transition:background .2s; }
+  .switch .track::before { content:""; position:absolute; top:3px; left:3px; width:17px;height:17px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .2s; }
+  .switch input:checked + .track { background:var(--green); }
+  .switch input:checked + .track::before { transform:translateX(17px); }
+  .switch input:focus-visible + .track { outline:3px solid var(--gold);outline-offset:2px; }
+  .primary { display:flex; justify-content:center; align-items:center; gap:10px; width:100%; min-height:54px; margin-top:25px; padding:14px 20px; color:#fff; background:var(--green); border:0; border-radius:13px; box-shadow:0 10px 20px rgba(23,107,82,.18); cursor:pointer; font-size:14px; font-weight:600; transition:transform .2s, background .2s, box-shadow .2s; }
+  .primary:hover { transform:translateY(-2px); background:var(--green-dark); box-shadow:0 14px 24px rgba(23,107,82,.25); }
+  .primary svg { width:18px;height:18px; }
+  .side-panel { position:sticky; top:24px; overflow:hidden; padding:27px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
+  .side-panel::after { content:""; position:absolute; width:150px;height:150px; right:-70px;top:-76px; border-radius:50%; background:var(--green-soft); }
+  .side-panel > * { position:relative; z-index:1; }
+  .side-icon { display:grid; place-items:center; width:45px;height:45px; margin-bottom:18px; border-radius:15px; color:var(--green); background:var(--green-soft); }
+  .side-icon svg { width:23px;height:23px; }
+  .side-panel h3 { margin-bottom:8px; font-family:'Lora',Georgia,serif; font-size:20px; line-height:1.25; }
+  .side-panel > p { margin-bottom:21px; color:var(--muted); font-size:13px; }
+  .side-list { display:grid; gap:14px; margin:0; padding:0; list-style:none; }
+  .side-list li { display:flex; gap:11px; align-items:flex-start; color:var(--ink); font-size:12px; }
+  .list-number { display:grid; place-items:center; flex:0 0 23px; width:23px;height:23px; border-radius:8px; color:var(--green); background:var(--green-soft); font-size:11px;font-weight:600; }
+  .privacy-note { display:flex; gap:9px; align-items:flex-start; margin-top:22px; padding:12px; border-radius:12px; color:var(--muted); background:var(--surface-2); font-size:11px; }
+  .privacy-note svg { flex:0 0 16px; width:16px;height:16px;color:var(--green); }
+  #results-section { margin-top:30px; }
+  .results-heading { display:flex; justify-content:space-between; align-items:end; gap:16px; margin:0 0 16px; }
+  .results-heading p { margin:7px 0 0; color:var(--muted); font-size:13px; }
+  #results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+  .results-summary { grid-column:1/-1; margin:0 0 2px; color:var(--muted); font-size:13px; }
+  .scheme { padding:21px; border:1px solid var(--line); border-radius:17px; background:var(--surface); box-shadow:0 8px 24px rgba(24,55,44,.045); transition:transform .2s,border-color .2s; }
+  .scheme:hover { transform:translateY(-2px); border-color:color-mix(in srgb,var(--green) 38%,var(--line)); }
+  .scheme-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .scheme-head h3 { margin:0; font-family:'Lora',Georgia,serif; font-size:17px; line-height:1.35; }
+  .tag { flex:0 0 auto; padding:5px 9px; border-radius:999px; color:var(--green); background:var(--green-soft); font-size:10px; font-weight:600; }
+  .scheme p.benefit { margin:0 0 10px; color:var(--ink); font-size:13px; }
+  .scheme .why { margin:0 0 15px; color:var(--muted); font-size:12px; }
+  .docs { padding-top:12px; border-top:1px solid var(--line); font-size:12px; }
+  .docs summary { color:var(--green); cursor:pointer; font-weight:600; list-style:none; }
+  .docs summary::-webkit-details-marker { display:none; }
+  .docs summary::after { content:"+"; float:right; color:var(--green); font-size:17px; line-height:1; }
+  .docs[open] summary::after { content:"−"; }
+  .docs ul { margin:10px 0 0; padding-left:18px; color:var(--muted); }
+  .docs li { margin-bottom:4px; }
+  .empty-state { grid-column:1/-1; padding:25px; }
+  .empty-state p { margin:0 0 8px; color:var(--muted); font-size:13px; }
+  footer { display:flex; justify-content:space-between; gap:18px; margin-top:42px; padding:20px 4px 0; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }
+  footer span:last-child { text-align:right; }
+  [hidden] { display:none !important; }
+  @media(max-width:860px) { .hero { padding:40px; grid-template-columns:1.1fr .9fr; gap:12px; } .content-grid { grid-template-columns:1fr; } .side-panel { position:relative;top:auto; display:grid; grid-template-columns:50px 1fr; column-gap:14px; } .side-icon { grid-row:span 2; } .side-panel h3 { align-self:end; } .side-panel > p { margin-bottom:12px; } .side-list,.privacy-note { grid-column:1/-1; } }
+  @media(max-width:620px) { .wrap { width:min(100% - 28px, 520px); padding-top:16px; } .topbar { margin-bottom:20px; } .brand-mark { width:36px;height:36px; } .theme-button { width:39px;height:39px;justify-content:center;padding:0;font-size:0; } .theme-button svg { width:17px;height:17px; } .hero { display:block; min-height:0; padding:32px 25px 25px; border-radius:24px; } h1 { font-size:39px; } .hero .lede { font-size:14px; } .hero-art { min-height:190px; margin-top:12px; } .hero-card { max-width:280px; } .trust-row { padding:0 3px 20px; gap:9px 14px; font-size:11px; } section.card { padding:23px 18px; border-radius:19px; } .section-top { margin-bottom:21px; } .grid-2 { grid-template-columns:1fr 1fr; gap:11px; } fieldset { grid-template-columns:1fr; gap:8px; } .toggle-row { min-height:52px; } #results { grid-template-columns:1fr; } .results-heading { align-items:start; } .side-panel { padding:22px; } footer { display:block; line-height:1.7; } footer span:last-child { display:block; margin-top:6px; text-align:left; } }
+  @media(max-width:370px) { .grid-2 { grid-template-columns:1fr; } h1 { font-size:34px; } }
+  @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; } }
+  /* A cohesive motion system: quick feedback for controls, slow reveal for content. */
+  body { background-image:radial-gradient(ellipse at 5% 18%, rgba(126, 208, 168, .10), transparent 26%), radial-gradient(ellipse at 96% 66%, rgba(242, 181, 68, .08), transparent 24%); background-attachment:fixed; }
+  .wrap { animation:pageEnter .72s cubic-bezier(.2,.75,.25,1) both; }
+  .topbar { transition:opacity .25s ease, transform .25s ease; }
+  .brand-mark { transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; }
+  .brand:hover .brand-mark { transform:rotate(-5deg) translateY(-2px); box-shadow:0 12px 25px rgba(23,107,82,.28); }
+  .hero { background-size:180% 180%; animation:heroGradient 20s ease-in-out infinite alternate; }
+  .hero-art { animation:artArrive .9s .12s cubic-bezier(.2,.8,.2,1) both; }
+  .orbit { animation:orbitTurn 44s linear infinite; }
+  .hero-card { animation:cardFloat 6.5s ease-in-out infinite; transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; }
+  .hero-card:hover { transform:rotate(0deg) translateY(-4px); box-shadow:0 26px 54px rgba(6,34,25,.28); }
+  .eyebrow-dot { animation:dotPulse 3.4s ease-in-out infinite; }
+  .theme-button { transition:transform .22s cubic-bezier(.2,.8,.2,1), border-color .22s ease, background .22s ease, box-shadow .22s ease; }
+  .theme-button:hover { box-shadow:0 7px 18px rgba(24,55,44,.08); }
+  .theme-button svg { transition:transform .35s cubic-bezier(.2,.8,.2,1); }
+  .theme-button:hover svg { transform:rotate(-14deg) scale(1.08); }
+  .theme-button:active,.primary:active { transform:scale(.975); }
+  .trust-item svg { transition:transform .25s ease; }
+  .trust-item:hover svg { transform:translateY(-2px) scale(1.1); }
+  .toggle-row { cursor:pointer; transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease; }
+  .toggle-row:hover { transform:translateY(-1px); border-color:color-mix(in srgb,var(--green) 40%,var(--line)); box-shadow:0 5px 14px rgba(24,55,44,.05); }
+  .switch .track { transition:background .22s ease,box-shadow .22s ease; }
+  .switch input:checked + .track { box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 13%,transparent); }
+  .field:focus-within > label,.field:focus-within > div > label { color:var(--green); transition:color .2s ease; }
+  .primary { position:relative; overflow:hidden; isolation:isolate; }
+  .primary::before { content:""; position:absolute; z-index:-1; inset:0; opacity:0; background:linear-gradient(105deg,transparent 22%,rgba(255,255,255,.17) 48%,transparent 72%); transform:translateX(-100%); transition:transform .65s ease,opacity .2s ease; }
+  .primary:hover::before { opacity:1; transform:translateX(100%); }
+  .primary svg { transition:transform .25s ease; }
+  .primary:hover svg { transform:translateX(4px); }
+  .side-icon svg { transition:transform .45s cubic-bezier(.2,.8,.2,1); }
+  .side-panel:hover .side-icon svg { transform:rotate(18deg) scale(1.06); }
+  .scheme { transform:translateY(0) scale(1); transition:transform .28s cubic-bezier(.2,.8,.2,1),border-color .25s ease,box-shadow .25s ease; }
+  .scheme:hover { transform:translateY(-4px) scale(1.008); box-shadow:0 15px 34px rgba(24,55,44,.09); }
+  .docs summary { transition:color .2s ease; }
+  .docs summary::after { transition:transform .22s ease; }
+  .docs[open] summary::after { transform:rotate(180deg); }
+  [data-reveal] { opacity:0; transform:translateY(18px); transition:opacity .65s cubic-bezier(.2,.7,.25,1) var(--reveal-delay,0ms),transform .65s cubic-bezier(.2,.7,.25,1) var(--reveal-delay,0ms); }
+  [data-reveal].is-visible { opacity:1; transform:translateY(0); }
+  .scheme.card-arrive { animation:cardArrive .48s cubic-bezier(.2,.8,.2,1) both; animation-delay:var(--stagger,0ms); }
+  @keyframes pageEnter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes artArrive { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes heroGradient { from { background-position:0% 46%; } to { background-position:100% 54%; } }
+  @keyframes orbitTurn { to { transform:rotate(360deg); } }
+  @keyframes cardFloat { 0%,100% { translate:0 0; } 50% { translate:0 -5px; } }
+  @keyframes dotPulse { 0%,100% { box-shadow:0 0 0 5px rgba(242,181,68,.13); } 50% { box-shadow:0 0 0 8px rgba(242,181,68,.05); } }
+  @keyframes cardArrive { from { opacity:0; transform:translateY(14px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+  @media(max-width:620px) { .hero { animation-duration:28s; } .orbit { animation-duration:60s; } }
+  @media(prefers-reduced-motion:reduce) {
+    *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+    [data-reveal] { opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">  <div class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5h16M6.5 19V8.5L12 5l5.5 3.5V19M9.5 19v-5h5v5M4.5 10.5 12 6l7.5 4.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>CivicPath<small>Benefits, made clearer</small></span></div>
+    <button class="theme-button" id="theme-toggle" type="button" aria-label="Switch to dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.6 8.6 0 1 0 20.2 15.4Z" stroke-linecap="round" stroke-linejoin="round"/></svg>Toggle theme</button>
+  </div>
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="eyebrow-dot"></span> Your guide to public benefits</p>
+      <h1>Find support that fits your life.</h1>
+      <p class="lede">A few details can open the door to meaningful support. Discover government schemes that may match your situation, and see what to do next.</p>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="orbit"></div>
+      <div class="hero-card"><div class="hero-card-top"><span>YOUR BENEFIT JOURNEY</span><span class="hero-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div><strong>A clearer next step.</strong><p>Explore support for your household, work and future.</p><div class="hero-progress"><i></i><i></i><i></i><i></i></div></div>
+    </div>
+  </header>
+  <div class="trust-row"><span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg> Your answers stay on this device</span><span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg> Takes about 2 minutes</span><span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5h16M6.5 19V8.5L12 5l5.5 3.5V19"/><path d="M9.5 19v-5h5v5"/></svg> Built around public schemes</span></div>
+  <main class="content-grid">
+  <section class="card" id="form-card">
+    <div class="section-top"><div><span class="section-kicker">Personalise your search</span><h2>Your details</h2></div><span class="step-count">STEP 01 / 01</span></div>
+    <form id="profile-form">
+      <div class="field grid-2">
+        <div>
+          <label for="age">Age</label>
+          <input type="number" id="age" name="age" min="1" max="110" required placeholder="e.g. 34">
+        </div>
+        <div>
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" required>
+            <option value="">Select</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+            <div class="field grid-2">
+        <div><label for="occupation">Primary occupation</label>
+          <select id="occupation" name="occupation" required>
+            <option value="">Select</option>
+            <option value="farmer">Farmer / agricultural landholder</option>
+            <option value="street_vendor">Street vendor</option>
+            <option value="unorganized_worker">Daily wage / unorganized sector worker</option>
+            <option value="self_employed">Self-employed / small business owner</option>
+            <option value="salaried">Salaried employee</option>
+            <option value="student">Student</option>
+            <option value="homemaker">Homemaker</option>
+            <option value="unemployed">Currently unemployed</option>
+            <option value="senior_citizen">Retired / senior citizen</option>
+          </select>
+        </div>
+        <div><label for="income">Annual family income<span class="hint">Combined income of all earning family members, before tax.</span></label>
+          <select id="income" name="income" required>
+            <option value="">Select</option>
+            <option value="low">Below ₹2.5 lakh</option>
+            <option value="mid">₹2.5 lakh – ₹8 lakh</option>
+            <option value="high">Above ₹8 lakh</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="category">Social category <span class="hint" style="display:inline">(optional — used for a couple of category-specific schemes)</span></label>
+        <select id="category" name="category">
+          <option value="">Prefer not to say</option>
+          <option value="general">General</option>
+          <option value="obc">OBC</option>
+          <option value="sc">SC</option>
+          <option value="st">ST</option>
+          <option value="minority">Minority community</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <fieldset aria-label="Additional details">
+          <label class="toggle-row"><span>I own agricultural land</span><span class="switch"><input type="checkbox" id="ownsLand"><span class="track" aria-hidden="true"></span></span></label>
+          <label class="toggle-row"><span>I have a bank account</span><span class="switch"><input type="checkbox" id="hasBank"><span class="track" aria-hidden="true"></span></span></label>
+          <label class="toggle-row"><span>I live with a disability</span><span class="switch"><input type="checkbox" id="hasDisability"><span class="track" aria-hidden="true"></span></span></label>
+          <label class="toggle-row"><span>I am a widow</span><span class="switch"><input type="checkbox" id="isWidow"><span class="track" aria-hidden="true"></span></span></label>
+          <label class="toggle-row"><span>I have a daughter under 10 years old</span><span class="switch"><input type="checkbox" id="hasDaughter"><span class="track" aria-hidden="true"></span></span></label>
+        </fieldset>
+      </div>
+
+      <button type="submit" class="primary">Show my potential matches <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </form>
+  </section>
+    <aside class="side-panel">
+      <span class="side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4m0-12.8L17 7M7 17l-1.4 1.4" stroke-linecap="round"/><circle cx="12" cy="12" r="4"/></svg></span>
+      <h3>Support starts with knowing what’s possible.</h3>
+      <p>Answer a few simple questions to get a more focused place to begin.</p>
+      <ol class="side-list"><li><span class="list-number">1</span><span>Tell us a little about your household and work.</span></li><li><span class="list-number">2</span><span>Review schemes that may fit your profile.</span></li><li><span class="list-number">3</span><span>Gather documents and confirm details with the official provider.</span></li></ol>
+      <div class="privacy-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg><span>Your information is used only to show matches in this browser. It is not sent to a server.</span></div>
+    </aside>
+  </main>
+  <section id="results-section" hidden>
+    <div class="results-heading"><div><span class="section-kicker">A place to start</span><h2>Your potential matches</h2><p>Use these results as a starting point. Eligibility is confirmed by each official scheme provider.</p></div></div>
+    <div id="results" aria-live="polite"></div>
+  </section>
+
+  <footer><span>Prototype for Code for Communities — Second Edition · Governance / Digital Infrastructure track.</span><span>Not an official government service. Confirm eligibility with the relevant department.</span></footer>
+
+</div>
+
+<script>
+(function () {
+  const themeButton = document.getElementById("theme-toggle");
+  let savedTheme = "";
+  try { savedTheme = localStorage.getItem("civicpath-theme") || ""; } catch (err) { /* Theme still works for this visit. */ }
+  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  themeButton.setAttribute("aria-label", savedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+  themeButton.addEventListener("click", function () {
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("civicpath-theme", next); } catch (err) { /* Theme still works for this visit. */ }
+    themeButton.setAttribute("aria-label", next === "dark" ? "Switch to light theme" : "Switch to dark theme");
+  });
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduceMotion && "IntersectionObserver" in window) {
+    const revealItems = document.querySelectorAll(".trust-row, #form-card, .side-panel, footer");
+    const revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -24px 0px" });
+    revealItems.forEach((item, index) => {
+      item.dataset.reveal = "";
+      item.style.setProperty("--reveal-delay", Math.min(index * 75, 225) + "ms");
+      revealObserver.observe(item);
+    });
+  }
+  const schemes = [
+    {
+      id: "pmkisan",
+      name: "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)",
+      benefit: "₹6,000 per year, paid in three instalments, to landholding farmer families.",
+      docs: ["Aadhaar card", "Land ownership records", "Bank passbook"],
+      match: p => p.occupation === "farmer" && p.ownsLand && p.income !== "high",
+      why: () => "You're a landholding farmer with a family income under the higher exclusion bracket."
+    },
+    {
+      id: "pmfby",
+      name: "Pradhan Mantri Fasal Bima Yojana",
+      benefit: "Subsidized crop insurance covering losses from natural calamities, pests, and disease.",
+      docs: ["Aadhaar card", "Land records or tenancy agreement", "Bank passbook", "Sowing certificate"],
+      match: p => p.occupation === "farmer",
+      why: () => "Open to farmers, including tenant and sharecropper farmers, growing notified crops."
+    },
+    {
+      id: "kcc",
+      name: "Kisan Credit Card",
+      benefit: "Short-term credit for cultivation, inputs, and allied activities at subsidized interest rates.",
+      docs: ["Aadhaar card", "Land records", "Bank account"],
+      match: p => p.occupation === "farmer" && p.ownsLand,
+      why: () => "You own agricultural land, which is the core requirement for a KCC."
+    },
+    {
+      id: "abpmjay",
+      name: "Ayushman Bharat – PM-JAY",
+      benefit: "Cashless health cover of up to ₹5 lakh per family per year at empanelled hospitals.",
+      docs: ["Aadhaar card", "Ration card or SECC verification", "Income certificate"],
+      match: p => p.income === "low",
+      why: () => "Your reported family income falls in the economically vulnerable bracket this scheme targets."
+    },
+    {
+      id: "pmay",
+      name: "Pradhan Mantri Awas Yojana",
+      benefit: "Financial assistance to build or buy a pucca house, or interest subsidy on a home loan.",
+      docs: ["Aadhaar card", "Income certificate", "Property or land documents (if any)", "Bank account"],
+      match: p => p.income === "low" || p.income === "mid",
+      why: () => "Your income bracket falls within the EWS/LIG range this housing scheme is designed for."
+    },
+    {
+      id: "ujjwala",
+      name: "Pradhan Mantri Ujjwala Yojana",
+      benefit: "Free LPG gas connection, with support for the first refill and stove.",
+      docs: ["Aadhaar card", "BPL or ration card", "Bank account", "Address proof"],
+      match: p => p.gender === "female" && p.income === "low",
+      why: () => "The scheme provides LPG connections to women from low-income households."
+    },
+    {
+      id: "ssy",
+      name: "Sukanya Samriddhi Yojana",
+      benefit: "High-interest savings account for a girl child, built up for her education or marriage.",
+      docs: ["Girl child's birth certificate", "Guardian's Aadhaar/ID", "Address proof"],
+      match: p => p.hasDaughter,
+      why: () => "You have a daughter under 10, who is eligible for an account under this scheme."
+    },
+    {
+      id: "apy",
+      name: "Atal Pension Yojana",
+      benefit: "Guaranteed monthly pension of ₹1,000–₹5,000 after age 60, based on contributions made.",
+      docs: ["Aadhaar card", "Bank account", "Mobile number"],
+      match: p => p.age >= 18 && p.age <= 40 && ["unorganized_worker", "self_employed", "street_vendor"].includes(p.occupation),
+      why: () => "You're within the 18–40 enrolment window and working outside formal pension coverage."
+    },
+    {
+      id: "jandhan",
+      name: "Pradhan Mantri Jan Dhan Yojana",
+      benefit: "Zero-balance bank account with a RuPay card, accident cover, and overdraft facility.",
+      docs: ["Aadhaar or any valid ID", "Address proof", "Passport-size photo"],
+      match: p => !p.hasBank,
+      why: () => "You don't currently have a bank account — this scheme is the standard entry point."
+    },
+    {
+      id: "mudra",
+      name: "Pradhan Mantri MUDRA Yojana",
+      benefit: "Collateral-free loans up to ₹10 lakh for non-farm micro and small enterprises.",
+      docs: ["Business plan or activity proof", "ID and address proof", "Bank statements"],
+      match: p => p.occupation === "self_employed",
+      why: () => "You run or plan to run a small business, which this loan scheme is built for."
+    },
+    {
+      id: "ignoaps",
+      name: "Indira Gandhi National Old Age Pension Scheme",
+      benefit: "Monthly pension for senior citizens from below-poverty-line households.",
+      docs: ["Aadhaar card", "Age proof", "BPL certificate", "Bank account"],
+      match: p => p.age >= 60 && p.income === "low",
+      why: () => "You're 60 or older with a household income in the low bracket this pension targets."
+    },
+    {
+      id: "ignwps",
+      name: "Indira Gandhi National Widow Pension Scheme",
+      benefit: "Monthly pension for widows aged 40–79 from below-poverty-line households.",
+      docs: ["Aadhaar card", "Husband's death certificate", "BPL certificate", "Bank account"],
+      match: p => p.isWidow && p.age >= 40 && p.age <= 79 && p.income === "low",
+      why: () => "You're a widow within the eligible age range and low-income bracket."
+    },
+    {
+      id: "igndps",
+      name: "Indira Gandhi National Disability Pension Scheme",
+      benefit: "Monthly pension for persons with severe disability from low-income households.",
+      docs: ["Aadhaar card", "Disability certificate (UDID)", "BPL certificate", "Bank account"],
+      match: p => p.hasDisability && p.income === "low" && p.age >= 18 && p.age <= 79,
+      why: () => "You reported a disability and a household income in the eligible low-income bracket."
+    },
+    {
+      id: "svanidhi",
+      name: "PM SVANidhi",
+      benefit: "Working capital loans (₹10,000 rising to ₹50,000 in later tranches) for street vendors.",
+      docs: ["Vending certificate or letter of recommendation", "Aadhaar card", "Bank account"],
+      match: p => p.occupation === "street_vendor",
+      why: () => "You work as a street vendor, the group this micro-credit scheme was built for."
+    },
+    {
+      id: "eshram",
+      name: "e-Shram registration",
+      benefit: "Universal Account Number and social security card, plus accidental insurance cover.",
+      docs: ["Aadhaar card", "Bank account", "Mobile number"],
+      match: p => ["unorganized_worker", "street_vendor", "self_employed"].includes(p.occupation),
+      why: () => "You work outside formal employment, which is exactly who e-Shram registers."
+    },
+    {
+      id: "standup",
+      name: "Stand-Up India",
+      benefit: "Bank loans of ₹10 lakh – ₹1 crore for setting up a new (greenfield) enterprise.",
+      docs: ["Business plan / project report", "ID, address and category proof"],
+      match: p => p.occupation === "self_employed" && (p.category === "sc" || p.category === "st" || p.gender === "female"),
+      why: () => "This scheme is reserved for SC/ST and women entrepreneurs starting a new enterprise."
+    },
+    {
+      id: "suryaghar",
+      name: "PM Surya Ghar: Muft Bijli Yojana",
+      benefit: "Subsidy on rooftop solar installation, with up to 300 free electricity units per month.",
+      docs: ["Recent electricity bill", "Aadhaar card", "Bank account", "Roof ownership proof"],
+      match: p => p.income !== "high",
+      why: () => "Open to residential households; your income bracket doesn't exclude you."
+    },
+    {
+      id: "pmjjby",
+      name: "Pradhan Mantri Jeevan Jyoti Bima Yojana",
+      benefit: "₹2 lakh life insurance cover for a premium of about ₹436 a year.",
+      docs: ["Aadhaar card", "Bank account", "Auto-debit consent form"],
+      match: p => p.age >= 18 && p.age <= 50 && p.hasBank,
+      why: () => "You're within the 18–50 enrolment age and have a bank account for the auto-debit."
+    },
+    {
+      id: "pmsby",
+      name: "Pradhan Mantri Suraksha Bima Yojana",
+      benefit: "₹2 lakh accidental death and disability cover for a premium of about ₹20 a year.",
+      docs: ["Aadhaar card", "Bank account", "Auto-debit consent form"],
+      match: p => p.age >= 18 && p.age <= 70 && p.hasBank,
+      why: () => "You're within the 18–70 enrolment age and have a bank account for the auto-debit."
+    },
+    {
+      id: "nmms",
+      name: "National Means-cum-Merit Scholarship",
+      benefit: "Scholarship support for meritorious students from economically weaker sections (classes 9–12).",
+      docs: ["Aadhaar card", "Income certificate", "Previous year's mark sheet", "Bank account"],
+      match: p => p.occupation === "student" && p.income === "low",
+      why: () => "You're a student from a household in the low-income bracket this scholarship targets."
+    }
+  ];
+
+  const form = document.getElementById("profile-form");
+  const resultsSection = document.getElementById("results-section");
+  const resultsEl = document.getElementById("results");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const profile = {
+      age: parseInt(document.getElementById("age").value, 10),
+      gender: document.getElementById("gender").value,
+      occupation: document.getElementById("occupation").value,
+      income: document.getElementById("income").value,
+      category: document.getElementById("category").value,
+      ownsLand: document.getElementById("ownsLand").checked,
+      hasBank: document.getElementById("hasBank").checked,
+      hasDisability: document.getElementById("hasDisability").checked,
+      isWidow: document.getElementById("isWidow").checked,
+      hasDaughter: document.getElementById("hasDaughter").checked
+    };
+
+    const matches = schemes.filter(s => {
+      try { return s.match(profile); } catch (err) { return false; }
+    });
+
+    renderResults(matches, profile);
+    resultsSection.hidden = false;
+    resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  function renderResults(matches, profile) {
+    resultsEl.innerHTML = "";
+
+    if (matches.length === 0) {
+      resultsEl.innerHTML = `
+        <div class="scheme empty-state">
+          <p>No direct matches from this prototype's dataset for the details you gave.</p>
+          <p>Two schemes worth checking regardless: <strong>e-Shram</strong> (if you work outside formal employment) and <strong>PM Jan Dhan Yojana</strong> (if you don't yet have a bank account) — both are entry points to further benefits.</p>
+        </div>`;
+      return;
+    }
+
+    const summary = document.createElement("p");
+    summary.className = "results-summary";
+    summary.textContent = matches.length === 1
+      ? "1 scheme matched your details."
+      : matches.length + " schemes matched your details.";
+    resultsEl.appendChild(summary);
+
+    matches.forEach((s, index) => {
+      const card = document.createElement("div");
+      card.className = "scheme card-arrive";
+      card.style.setProperty("--stagger", Math.min(index * 65, 390) + "ms");
+      card.innerHTML = `
+        <div class="scheme-head">
+          <h3>${s.name}</h3>
+          <span class="tag">Worth checking</span>
+        </div>
+        <p class="benefit">${s.benefit}</p>
+        <p class="why">${s.why(profile)}</p>
+        <details class="docs">
+          <summary>Documents typically needed</summary>
+          <ul>${s.docs.map(d => `<li>${d}</li>`).join("")}</ul>
+        </details>
+      `;
+      resultsEl.appendChild(card);
+    });
+  }
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
